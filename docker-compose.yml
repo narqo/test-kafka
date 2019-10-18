@@ -1,0 +1,28 @@
+version: '3.4'
+
+services:
+  zookeeper:
+    image: 'wurstmeister/zookeeper'
+    ports:
+      - '2181'
+
+  kafka0:
+    image: 'wurstmeister/kafka:2.12-2.2.1'
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181/kafka0
+      HOSTNAME_COMMAND: 'hostname -i'
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://_{HOSTNAME_COMMAND}:29092
+      KAFKA_LISTENERS: INTERNAL://:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+
+  kafka-consumer:
+    build:
+      context: .
+    depends_on:
+      - kafka0
+    restart: on-failure
+    entrypoint: ['/bin/sh']
+    command: ['-c', 'sleep 5 && test-kafka -kafka.brokers=kafka0:29092']
