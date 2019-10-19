@@ -70,7 +70,7 @@ func run(conf config) error {
 	defer group.Close()
 
 	go func() {
-		c := NewKafkaConsumer(conf.numConsumers, &basicHandler{})
+		c := NewKafkaConsumer(conf.numConsumers, &basicProcessor{})
 		defer c.Close()
 		for {
 			select {

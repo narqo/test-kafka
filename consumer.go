@@ -8,26 +8,29 @@ import (
 	"github.com/Shopify/sarama"
 )
 
-type MessageHandler interface {
-	Handle(ctx context.Context, msg *sarama.ConsumerMessage) error
+type MessageProcessor interface {
+	Process(ctx context.Context, msg *sarama.ConsumerMessage) error
 }
 
-type basicHandler struct{}
+type basicProcessor struct{}
 
-func (h *basicHandler) Handle(ctx context.Context, msg *sarama.ConsumerMessage) error {
-	log.Printf("MessageHandler: got message: topic %q, value %s", msg.Topic, msg.Value)
+func (proc *basicProcessor) Process(ctx context.Context, msg *sarama.ConsumerMessage) error {
+	log.Printf("MessageProcessor: got message: topic %q, value %s", msg.Topic, msg.Value)
 	return nil
 }
 
 type KafkaConsumer struct {
+	proc MessageProcessor
+
 	ready chan struct{}
 
 	msgs chan message
 	wg   sync.WaitGroup
 }
 
-func NewKafkaConsumer(size int, h MessageHandler) *KafkaConsumer {
+func NewKafkaConsumer(size int, proc MessageProcessor) *KafkaConsumer {
 	c := &KafkaConsumer{
+		proc:  proc,
 		ready: make(chan struct{}),
 		msgs:  make(chan message, size),
 	}
@@ -36,8 +39,7 @@ func NewKafkaConsumer(size int, h MessageHandler) *KafkaConsumer {
 		c.wg.Add(1)
 		go func() {
 			defer c.wg.Done()
-
-			c.consume(h)
+			c.consume()
 		}()
 	}
 
@@ -49,10 +51,10 @@ type message struct {
 	msg *sarama.ConsumerMessage
 }
 
-func (c *KafkaConsumer) consume(h MessageHandler) {
+func (c *KafkaConsumer) consume() {
 	for msg := range c.msgs {
-		// TODO(narqo): report handling error back to ConsumerGroupHandler
-		h.Handle(msg.ctx, msg.msg)
+		// TODO(narqo): report processing error back to ConsumerGroupHandler
+		c.proc.Process(msg.ctx, msg.msg)
 	}
 }
 
