@@ -37,7 +37,7 @@ func NewKafkaConsumer(size int, h MessageHandler) *KafkaConsumer {
 		go func() {
 			defer c.wg.Done()
 
-			c.run(h)
+			c.consume(h)
 		}()
 	}
 
@@ -49,8 +49,9 @@ type message struct {
 	msg *sarama.ConsumerMessage
 }
 
-func (c *KafkaConsumer) run(h MessageHandler) {
+func (c *KafkaConsumer) consume(h MessageHandler) {
 	for msg := range c.msgs {
+		// TODO(narqo): report handling error back to ConsumerGroupHandler
 		h.Handle(msg.ctx, msg.msg)
 	}
 }
@@ -81,7 +82,7 @@ func (c *KafkaConsumer) Close() {
 	select {
 	case <-c.ready:
 		// close is called after the last ConsumeClaim call,
-		// so it's safe to close msgs
+		// so it's safe to close msgs here
 		close(c.msgs)
 	default:
 	}

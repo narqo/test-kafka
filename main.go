@@ -16,27 +16,29 @@ import (
 const (
 	groupID = "go-consumer-group0"
 	topic   = "go-topic0"
-
-	numConsumers = 5
 )
 
 type config struct {
 	kafkaVersion string
 	kafkaBrokers []string
+
+	numConsumers int
 }
 
 func main() {
 	var conf config
 
 	flag.StringVar(&conf.kafkaVersion, "kafka.version", "1.1.0", "kafka protocol version")
-	kb := flag.String("kafka.brokers", "localhost:9092", "kafka bootstrap brokers")
+	var kb string
+	flag.StringVar(&kb, "kafka.brokers", "localhost:9092", "kafka bootstrap brokers, comma-separated list")
+	flag.IntVar(&conf.numConsumers, "num-consumers", 5, "number of consumer goroutines to start")
 
 	flag.Parse()
 
-	if *kb == "" {
+	if kb == "" {
 		log.Fatal("no kafka bootstrap broker")
 	}
-	conf.kafkaBrokers = strings.Split(*kb, ",")
+	conf.kafkaBrokers = strings.Split(kb, ",")
 
 	sarama.Logger = log.New(os.Stdout, "sarama ", log.LstdFlags)
 
@@ -68,7 +70,7 @@ func run(conf config) error {
 	defer group.Close()
 
 	go func() {
-		c := NewKafkaConsumer(numConsumers, &basicHandler{})
+		c := NewKafkaConsumer(conf.numConsumers, &basicHandler{})
 		defer c.Close()
 		for {
 			select {
@@ -77,6 +79,10 @@ func run(conf config) error {
 			default:
 			}
 
+			// pass top-level context to force session to close on context cancel;
+			// otherwise if the topic doesn't have enough partitions to consume,
+			// the session will get stack on group close
+			// see https://github.com/Shopify/sarama/issues/1351
 			if err := group.Consume(ctx, []string{topic}, c); err != nil {
 				errs <- err
 				return
