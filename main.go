@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	groupID = "go-consumer-group0"
-	topic   = "go-topic0"
+	groupID = "go-consumer-group-0"
+	topic   = "go-topic-0"
 )
 
 type config struct {
@@ -29,6 +29,7 @@ func main() {
 	var conf config
 
 	flag.StringVar(&conf.kafkaVersion, "kafka.version", "1.1.0", "kafka protocol version")
+
 	var kb string
 	flag.StringVar(&kb, "kafka.brokers", "localhost:9092", "kafka bootstrap brokers, comma-separated list")
 	flag.IntVar(&conf.numConsumers, "num-consumers", 5, "number of consumer goroutines to start")
@@ -57,6 +58,8 @@ func run(conf config) error {
 
 	kafkaConf := sarama.NewConfig()
 	kafkaConf.Version = version
+	// test kafka isolation levels
+	kafkaConf.Consumer.IsolationLevel = sarama.ReadCommitted
 
 	sigs := make(chan os.Signal, 2)
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)

@@ -21,12 +21,20 @@ Produce messages to kafka:
         "echo 'test message 1' | kafka-console-producer.sh --broker-list kafka0:29092 --topic go-topic0"
 ```
 
+Or the same with kafkacat:
+
+```
+> docker container run --rm -ti --network test-kafka_default edenhill/kafkacat:1.6.0 -b kafka0:29092 -P -t go-topic-0
+test message 1
+[Press Ctrl-D]
+```
+
 Note, `--network` flag to run a container on the same bridge network as kafka cluster above.
 
 Inspect kafka cluster:
 
 ```
-> docker container run --rm -ti --network test-kafka_default ryane/kafkacat -b kafka0:29092 -L
+> docker container run --rm -ti --network test-kafka_default edenhill/kafkacat:1.6.0 -b kafka0:29092 -L
 ```
 
 Gracefully close consumers nodes:

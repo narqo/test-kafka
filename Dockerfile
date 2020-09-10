@@ -1,9 +1,9 @@
-FROM golang:1.13-alpine AS gobuild
+FROM golang:1.15-alpine AS gobuild
 RUN apk update \
     && apk add --no-cache binutils musl-dev gcc
 WORKDIR /go/src/test-kafka
 COPY . .
-RUN go build -mod=vendor ./
+RUN go build ./
 
 FROM alpine
 COPY --from=gobuild /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
